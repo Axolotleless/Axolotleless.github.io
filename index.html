@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KittyVille</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Fredoka One font -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+
+<style>
+/* BASE */
+* {margin:0; padding:0; box-sizing:border-box;}
+body {
+    background:#fff6ed;
+    font-family:'Fredoka One', cursive;
+    color:#222;
+    line-height:1.4;
+}
+
+header {
+    background:#ff7a18;
+    text-align:center;
+    padding:16px;
+    border-bottom:4px solid #e45f00;
+}
+header h1 {
+    color:white;
+    font-size:24px;
+}
+
+/* CONTAINER */
+.container {
+    width:100%;
+    max-width:960px;
+    margin:0 auto;
+    padding:12px;
+    background:#fff;
+    border:3px solid #ff9a3c;
+    box-shadow:4px 4px 0 #ffb36b;
+    border-radius:6px;
+}
+
+/* PANELS */
+.panel {
+    border:2px solid #ff9a3c;
+    background:#fff1e0;
+    padding:14px;
+    margin-bottom:14px;
+    border-radius:4px;
+}
+.forum-title {
+    background:#ffe1c4;
+    padding:8px;
+    border:2px solid #ff9a3c;
+    font-weight:bold;
+    margin-bottom:8px;
+    text-align:center;
+}
+.thread {
+    border:2px solid #ff9a3c;
+    background:#fffaf5;
+    max-height:400px;
+    overflow-y:auto;
+    padding:6px;
+}
+.thread-header {
+    background:#ffb36b;
+    padding:8px;
+    font-weight:bold;
+    border-bottom:2px solid #ff9a3c;
+}
+.post {
+    border-top:1px dashed #ff9a3c;
+    padding:6px;
+    font-size:14px;
+}
+.username {
+    color:#ff6a00;
+    font-weight:bold;
+}
+.timestamp {
+    font-size:10px;
+    color:#777;
+    margin-left:6px;
+}
+.post-content {
+    margin-top:6px;
+    white-space:pre-wrap;
+}
+.post img {
+    max-width:100%;
+    margin-top:6px;
+    border:2px solid #ff9a3c;
+}
+
+/* INPUTS & BUTTONS */
+input,textarea,button {
+    font-family:'Fredoka One', cursive;
+    font-size:14px;
+}
+input,textarea {
+    width:100%;
+    padding:8px;
+    border:2px solid #ff9a3c;
+    margin-bottom:8px;
+    border-radius:4px;
+}
+textarea {
+    resize:vertical;
+    min-height:70px;
+}
+button {
+    background:#ff7a18;
+    color:white;
+    border:2px solid #e45f00;
+    padding:8px 10px;
+    cursor:pointer;
+    font-weight:bold;
+}
+button:hover {
+    background:#ff8c33;
+}
+.hidden {display:none;}
+
+/* NAVIGATION */
+nav {
+    display:flex;
+    justify-content:center;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:6px;
+}
+nav button {
+    flex:1 0 auto;
+    min-width:100px;
+}
+
+/* FOOTER */
+footer {
+    text-align:center;
+    font-size:12px;
+    color:#888;
+    margin:14px 0;
+}
+
+/* IFRAME FOR WIKI */
+iframe {
+    width:100%;
+    height:260px;
+    border:2px solid #ff9a3c;
+    margin-top:8px;
+}
+
+/* RESPONSIVE */
+@media (max-width:600px){
+    .container {width:95%; padding:8px;}
+    .thread {max-height:300px;}
+    input,textarea,button {font-size:12px;}
+    header h1 {font-size:20px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>KittyVille</h1>
+</header>
+
+<div class="container">
+
+<!-- NAVIGATION -->
+<nav>
+<button onclick="switchThread('General')">General</button>
+<button onclick="switchThread('Bug Reports')">Bug Reports</button>
+<button onclick="switchThread('Art Showcase')">Art Showcase</button>
+<button onclick="switchThread('Wiki')">Wiki</button>
+</nav>
+
+<!-- AUTH PANEL -->
+<div id="authPanel" class="panel">
+<h3>Register</h3>
+<input id="regUser" placeholder="Username">
+<input id="regPass" type="password" placeholder="Password">
+<button onclick="register()">Register</button>
+
+<h3 style="margin-top:8px;">Login</h3>
+<input id="loginUser" placeholder="Username">
+<input id="loginPass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+</div>
+
+<!-- FORUM PANEL -->
+<div id="forumPanel" class="hidden">
+
+<div class="panel">
+Logged in as <b id="currentUser"></b>
+<button style="float:right;" onclick="logout()">Logout</button>
+<div style="clear:both;"></div>
+</div>
+
+<div class="forum-title" id="threadTitle">General Chatroom</div>
+
+<div class="thread" id="thread">
+<div class="thread-header">Main Thread</div>
+</div>
+
+<div class="panel" id="postPanel">
+<textarea id="message" placeholder="Type your message"></textarea>
+<input type="file" id="imageInput" accept="image/*">
+<button onclick="addPost()">Post</button>
+</div>
+
+</div>
+
+</div>
+
+<footer>
+KittyVille — Fun forum vibes
+</footer>
+
+<script>
+let loggedInUser=null;
+let currentThread='General';
+const threads=['General','Bug Reports','Art Showcase','Wiki'];
+
+// Load session if exists
+const session=sessionStorage.getItem("kittyville_session");
+if(session){loggedInUser=session;showForum();loadPosts();}
+
+// Helpers
+function normalize(name){return name.trim().toLowerCase();}
+
+// REGISTER / LOGIN
+function register(){
+    const user=normalize(regUser.value);
+    const pass=regPass.value;
+    if(!user||!pass)return alert("Fill all fields");
+    const users=JSON.parse(localStorage.getItem("kittyville_users")||"{}");
+    if(users[user])return alert("Username exists");
+    users[user]=pass;
+    localStorage.setItem("kittyville_users",JSON.stringify(users));
+    alert("Registered successfully");
+}
+function login(){
+    const user=normalize(loginUser.value);
+    const pass=loginPass.value;
+    const users=JSON.parse(localStorage.getItem("kittyville_users")||"{}");
+    if(users[user]!==pass)return alert("Invalid login");
+    loggedInUser=user;
+    sessionStorage.setItem("kittyville_session",user);
+    showForum();
+    loadPosts();
+}
+function logout(){loggedInUser=null;sessionStorage.removeItem("kittyville_session");showAuth();}
+function showForum(){authPanel.classList.add("hidden");forumPanel.classList.remove("hidden");currentUser.innerText=loggedInUser;}
+function showAuth(){authPanel.classList.remove("hidden");forumPanel.classList.add("hidden");}
+
+/* THREAD SWITCH */
+function switchThread(name){
+    currentThread=name;
+    threadTitle.innerText=name;
+    thread.innerHTML='<div class="thread-header">'+name+'</div>';
+    if(name==='Wiki'){
+        postPanel.style.display='none';
+        thread.innerHTML+='<iframe src="https://kittyville.fandom.com/wiki/KittyVille_Wiki"></iframe>';
+    }else{
+        postPanel.style.display='block';
+        loadPosts();
+    }
+}
+
+/* POSTS */
+function loadPosts(){
+    if(currentThread==='Wiki')return;
+    thread.innerHTML='<div class="thread-header">'+currentThread+'</div>';
+    const allPosts=JSON.parse(localStorage.getItem("kittyville_posts")||"{}");
+    const posts=allPosts[currentThread]||[];
+    posts.forEach(renderPost);
+}
+
+function addPost(){
+    if(currentThread==='Wiki')return;
+    const text=message.value.trim();
+    const image=imageInput.files[0];
+    if(!text&&!image)return;
+    const post={user:loggedInUser,time:new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),text,image:null};
+    if(image){
+        const reader=new FileReader();
+        reader.onload=e=>{post.image=e.target.result;savePost(post);}
+        reader.readAsDataURL(image);
+    }else savePost(post);
+    message.value='';imageInput.value='';
+}
+
+function savePost(post){
+    const allPosts=JSON.parse(localStorage.getItem("kittyville_posts")||"{}");
+    if(!allPosts[currentThread])allPosts[currentThread]=[];
+    allPosts[currentThread].push(post);
+    localStorage.setItem("kittyville_posts",JSON.stringify(allPosts));
+    renderPost(post);
+}
+
+function renderPost(p){
+    const div=document.createElement("div");
+    div.className="post";
+    div.innerHTML='<span class="username">'+p.user+'</span><span class="timestamp">['+p.time+']</span><div class="post-content">'+escapeHtml(p.text)+'</div>'+(p.image?'<img src="'+p.image+'">':'');
+    thread.appendChild(div);
+}
+
+function escapeHtml(t){const d=document.createElement("div");d.innerText=t;return d.innerHTML;}
+</script>
+
+</body>
+</html>
